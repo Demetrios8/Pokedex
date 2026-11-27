@@ -77,8 +77,4 @@ export default function SearchBar({
       />
   );
 }
-            },
-          }}
-      />
-  );
-}
+

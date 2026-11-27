@@ -12,9 +12,14 @@ export default function Navbar() {
   return (
     <AppBar position="sticky">
       <Toolbar>
-        <Typography variant="h6" sx={{ flexGrow: 1 }}>
-          Pokédex
-        </Typography>
+          <Typography
+            variant="h6"
+            component={Link}
+            to="/"
+            sx={{ flexGrow: 1, color: "inherit", textDecoration: "none", fontWeight: 700 }}
+          >
+            Pokédex
+          </Typography>
         <Button color="inherit" component={Link} to="/">
           Home
         </Button>
