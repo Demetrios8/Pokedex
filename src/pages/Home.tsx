@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Box, Typography } from "@mui/material";
 import SearchBar from "../components/SearchBar";
 import PokemonCard from "../components/PokemonCard";
@@ -8,88 +8,91 @@ import EmptyState from "../components/EmptyState";
 import { getErrorMessage, getPokemon } from "../services/pokemonService";
 import type { Pokemon } from "../types/pokemon";
 
+interface SearchResult {
+  query: string;
+  pokemon: Pokemon | null;
+  error: string | null;
+}
+
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [searchedPokemon, setSearchedPokemon] = useState<Pokemon | null>(null);
-  const [loadingSearch, setLoadingSearch] = useState<boolean>(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
+  const [result, setResult] = useState<SearchResult | null>(null);
+  const [retryCount, setRetryCount] = useState<number>(0);
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
 
-  const executeSearch = useCallback(async (query: string) => {
-    const cleanQuery = query.trim().toLowerCase();
-    if (!cleanQuery) {
-      setSearchedPokemon(null);
-      setSearchError(null);
-      setLoadingSearch(false);
-      return;
-    }
-
-    setLoadingSearch(true);
-    setSearchError(null);
-
-    try {
-      const data = await getPokemon(cleanQuery);
-      setSearchedPokemon(data);
-    } catch (error: unknown) {
-      setSearchedPokemon(null);
-      setSearchError(getErrorMessage(error));
-    } finally {
-      setLoadingSearch(false);
-    }
-  }, []);
-
   useEffect(() => {
-    void executeSearch(searchQuery);
-  }, [searchQuery, executeSearch]);
+    if (!normalizedQuery) return;
 
-  const handleSearch = useCallback((value: string) => {
-    setSearchQuery(value);
-  }, []);
+    // evita que uma resposta antiga sobrescreva uma busca mais nova
+    let cancelled = false;
+
+    getPokemon(normalizedQuery)
+      .then((pokemon) => {
+        if (!cancelled) setResult({ query: normalizedQuery, pokemon, error: null });
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setResult({ query: normalizedQuery, pokemon: null, error: getErrorMessage(error) });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [normalizedQuery, retryCount]);
+
+  // O resultado só vale se for da busca atual; senão, ainda está carregando
+  const current = result?.query === normalizedQuery ? result : null;
+  const loadingSearch = normalizedQuery !== "" && current === null;
+  const searchError = current?.error ?? null;
+  const searchedPokemon = current?.pokemon ?? null;
+
+  const handleRetry = () => {
+    setResult(null);
+    setRetryCount((count) => count + 1);
+  };
 
   return (
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-        <Typography variant="h4" component="h1">
-          Pokédex
-        </Typography>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+      <Typography variant="h4" component="h1">
+        Pokédex
+      </Typography>
 
-        <SearchBar value={searchQuery} onSearch={handleSearch} />
+      <SearchBar value={searchQuery} onSearch={setSearchQuery} />
 
-        {normalizedQuery ? (
-            <>
-              {loadingSearch && <Loading />}
+      {normalizedQuery ? (
+        <>
+          {loadingSearch && <Loading />}
 
-              {!loadingSearch && searchError && (
-                  <ErrorMessage
-                      message={searchError}
-                      onRetry={() => void executeSearch(searchQuery)}
-                  />
-              )}
+          {!loadingSearch && searchError && (
+            <ErrorMessage message={searchError} onRetry={handleRetry} />
+          )}
 
-              {!loadingSearch && !searchError && searchedPokemon && (
-                  <Box
-                      sx={{
-                        display: "grid",
-                        gap: 2,
-                        gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-                      }}
-                  >
-                    <PokemonCard pokemon={searchedPokemon} />
-                  </Box>
-              )}
-
-              {!loadingSearch && !searchError && !searchedPokemon && (
-                  <EmptyState
-                      title="Nenhum Pokémon encontrado"
-                      description="Tente buscar por outro nome ou número."
-                  />
-              )}
-            </>
-        ) : (
-            <Box>
-              {/* Espaço reservado para a listagem e paginação da Home (#2) quando mesclada na main */}
+          {!loadingSearch && !searchError && searchedPokemon && (
+            <Box
+              sx={{
+                display: "grid",
+                gap: 2,
+                gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+              }}
+            >
+              <PokemonCard pokemon={searchedPokemon} />
             </Box>
-        )}
-      </Box>
+          )}
+
+          {!loadingSearch && !searchError && !searchedPokemon && (
+            <EmptyState
+              title="Nenhum Pokémon encontrado"
+              description="Tente buscar por outro nome ou número."
+            />
+          )}
+        </>
+      ) : (
+        <Box>
+          {/* Espaço reservado para a listagem e paginação da Home (#2) quando mesclada na main */}
+        </Box>
+      )}
+    </Box>
   );
 }
