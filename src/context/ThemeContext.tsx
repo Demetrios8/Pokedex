@@ -23,9 +23,36 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
     });
 
   const theme = useMemo(
-    () => createTheme({ palette: { mode, primary: { main: "#e3350d" } } }),
-    [mode]
-  );
+  () =>
+    createTheme({
+      palette: {
+        mode,
+        primary: { main: "#e3350d" },
+        secondary: { main: "#3b4cca" },
+        background:
+          mode === "light"
+            ? { default: "#f5f5f7", paper: "#ffffff" }
+            : { default: "#121212", paper: "#1e1e1e" },
+      },
+      shape: { borderRadius: 12 },
+      typography: {
+        fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+        h4: { fontWeight: 700 },
+      },
+      components: {
+        MuiButton: { styleOverrides: { root: { textTransform: "none" } } },
+        MuiCard: {
+          styleOverrides: {
+            root: {
+              transition: "transform 0.2s, box-shadow 0.2s",
+              "&:hover": { transform: "translateY(-4px)", boxShadow: "0 8px 20px rgba(0,0,0,0.15)" },
+            },
+          },
+        },
+      },
+    }),
+  [mode]
+);
 
   return (
     <ThemeContext.Provider value={{ mode, toggleMode }}>
