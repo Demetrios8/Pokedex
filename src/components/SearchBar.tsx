@@ -18,9 +18,6 @@ export default function SearchBar({
                                   }: SearchBarProps) {
   const [inputValue, setInputValue] = useState<string>(value);
 
-  useEffect(() => {
-    setInputValue(value);
-  }, [value]);
 
   useEffect(() => {
     const trimmed = inputValue.trim();
