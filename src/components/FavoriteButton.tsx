@@ -15,8 +15,14 @@ export default function FavoriteButton({ id }: Props) {
   return (
     <IconButton
       color={active ? "error" : "default"}
-      onClick={() => toggleFavorite(id)}
+      onClick={(event) => {
+        // Evita que o clique no coração acione também um link/card ancestral.
+        event.preventDefault();
+        event.stopPropagation();
+        toggleFavorite(id);
+      }}
       aria-label={active ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+      aria-pressed={active}
     >
       {active ? <FavoriteIcon /> : <FavoriteBorderIcon />}
     </IconButton>

@@ -10,12 +10,26 @@ const FavoritesContext = createContext<FavoritesContextValue | undefined>(undefi
 
 export function FavoritesProvider({ children }: { children: ReactNode }) {
   const [favorites, setFavorites] = useState<number[]>(() => {
-    const saved = localStorage.getItem("favorites");
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem("favorites");
+      if (!saved) return [];
+      const parsed: unknown = JSON.parse(saved);
+      if (!Array.isArray(parsed)) return [];
+      return [...new Set(parsed.filter(
+        (id): id is number => Number.isSafeInteger(id) && id > 0,
+      ))];
+    } catch {
+      // Um valor inválido no armazenamento não deve impedir o app de abrir.
+      return [];
+    }
   });
 
   useEffect(() => {
-    localStorage.setItem("favorites", JSON.stringify(favorites));
+    try {
+      localStorage.setItem("favorites", JSON.stringify(favorites));
+    } catch {
+      // O estado continua funcional mesmo se o navegador bloquear o armazenamento.
+    }
   }, [favorites]);
 
   const toggleFavorite = (id: number) =>
